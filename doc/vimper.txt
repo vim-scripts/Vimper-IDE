@@ -1,0 +1,555 @@
+*vimper.txt*    For Vim version 7.2     Last Change: 8/13/2009
+
+
+
+              VIM REFERENCE MANUAL  by ghoshs
+
+
+
+                            *Help-Vimper*
+
+1. Vimper                                                         |Vimper|
+
+2. Projects                                              |vimper-projects|
+
+2.1 C/C++ Projects                                   |vimper-projects-cpp|
+
+2.1.1 Build                                    |vimper-projects-cpp-build|
+
+2.1.2 Class Browser                     |vimper-projects-cpp-classbrowser|
+
+3. VTreeExplorer                                           |VTreeExplorer|
+
+4. Search                                                        |VSearch|
+
+
+{Vi does not have any of these commands}
+
+
+
+=================================================================================
+
+
+
+1. Vimper                                 *Vimper* *:Vimper*
+
+
+
+Description:
+
+Vimper is a set of plugins to enable creation of development projects. 
+
+Currently it supports definition of C/C++ projects (projects can also be 
+
+created for developing vim plugins, mainly for demo purpose). 
+
+Project definitions are explained in more detail in their respective sections.
+
+
+
+To launch Vimper use the command ":Vimper" or map this command to a key 
+
+in your |.vimrc| file. On first launch vimper will not show any projects 
+
+as none have been yet defined. 
+
+
+
+Note: For |vimper| to work correctly an environment variable |VIMPER_HOME| 
+
+needs to be defined. This variable should point to the directory where the 
+
+vimper files are installed. Typically would be ~/.vim/vimper (UNIX) 
+
+or ~/vimfiles/vimper (Windows).
+
+
+
+=================================================================================
+
+
+
+2. Projects                               *vimper-projects*
+
+
+
+
+
+To define a project use ":VTreeExplorer {dir}" to navigate to the desired 
+
+folder and then press 'A' with your cursor on the folder which will be the 
+
+project root directory. (Options available in the VTreeExplorer window is 
+
+detailed further in the |VTreeExplorer| section of the doc.)
+
+
+
+Project Root Directory :~
+
+
+
+The user is prompted to enter a project root directory. By default 
+
+this is the directory selected in the explorer. 
+
+
+
+Project Type :~
+
+
+
+Currently supported Project Types are C/C++ (cpp) and Vim Plugins (vim). 
+
+This field is mandatory and does not have a default.
+
+
+
+
+
+Once projects are defined, their definitions are added to a meta-data file 
+
+which is read by vimper on startup to display a table of defined projects 
+
+for the current user. Using the cursor keys naviagte to the desired project 
+
+and press <Enter> or "o" to open the selected project. This will open up a split 
+
+window with the left panel being the project browser. The width of the browser 
+
+window can be configured by setting the global variable |g:vimperExplorerWidth|. 
+
+
+
+Currently vimper works only on (*)NIX and Cygwin environments. To create 
+
+projects on Windows set your Vim shell to Cygwin by adding the following 
+
+lines to your |.vimrc|:
+
+
+
+  set shell=C:/cygwin/bin/bash
+
+  set shellcmdflag=--login\ -c
+
+  set shellxquote=\"
+
+
+
+    
+
+For more details on the |project browser| window refer to 
+
+the |VTreeExplorer| section.
+
+
+
+2.1 C/C++ Projects                       *vimper-projects-cpp*
+
+
+
+C/C++ projects are defined and maintained using makefiles. Creating a project 
+
+of type "cpp" requires the definition of a few extra parameters which are used 
+
+by these makefiles. The structure of a "cpp" project is as follows:
+
+
+
+<Root>
+
+  |- Makefile
+
+  |- project.mk
+
+  <SubDir>
+
+    |- subdir.mk
+
+
+
+Along with the files mentioned above a common file macros.mk is also included. 
+
+This file is located in the |$VIMPER_HOME/make/cpp| directory.
+
+
+
+Project Output Directory:~
+
+
+
+This is the directory where the build/make output will be put. 
+
+By default this directory is set to <project root>/build.
+
+
+
+Platform Architecture:~
+
+
+
+Define the target build platform. [x86, amd64, etc.] If left empty 
+
+the script will try to guess the platform based on the environment 
+
+setting. If not found will default to x86.
+
+
+
+Build Target:~
+
+
+
+Define whether the output of the build is a library or executable. 
+
+{ Options : lib|library, exe}
+
+
+
+All directories under the project root will be scanned for C/C++ files. 
+
+If such files exist in any of the sub-directories the sub-directory will 
+
+be included in the build. (Note: If a directory only contains header 
+
+files it will not be included.)
+
+
+
+Directories can also be added to the project at a later time by pressing "a" 
+
+in the project explorer. This will create a new directory if required, if 
+
+directory by the specified name already exists it will force add the 
+
+directory to the makefiles.
+
+
+
+(Also see VTreeExplorer section)
+
+
+
+2.1.2 Build                               *vimper-projects-cpp-build*
+
+
+
+Make and make output has also been integrated so that build can be 
+
+executed and errors analyzed from within Vim. To start a build 
+
+execute the command ":VmkMake". This will launch make in the shell and 
+
+once completed display the build results in a preview window. The errors 
+
+and warnings generated by make can be navigated to using keys in the 
+
+preview window or through commands. Selecting an error/warning will open 
+
+the corresponding file/line. Functionality is equivalent to that of |:cfile|.
+
+
+
+Navigating Errors/Warnings in Make:~
+
+
+
+Command  |   Key   |    Description                                       ~
+
+-------------------------------------------------------------------------
+
+         |<Enter>  |Open the error/warning under the cursor. 
+
+:VmkNext |  "n"    |Next error/warning (equivalent to :cnext command)
+
+:VmkPrev |  "p"    |Previous error/warning (equivalent to :cprev command)
+
+:VmkQuit |  "q"    |Close the error buffer.
+
+:VmkReop |         |Reopen the build error window if it has been closed.
+
+
+
+=================================================================================
+
+
+
+Set the global variable |vimperErrorBufferHeight| to control the height of the
+
+opened error output window.
+
+
+2.1.2 Class Browser                            *vimper-projects-cpp-classbrowser*
+
+The class browser opens a window which shows the Class outline, such as Class Members, 
+Class Methods, etc. For CPP files the entire class is constructed using the definitions
+in the header files. For C files only structures and methods are listed. 
+
+To activate the ClassBrowser by default set the flag |g:vimperShowClassBrowser| to 1 in the 
+project settings file |.vimproj|. To manually activate the ClassBrowser use the |:VClassBr|
+command. This will also set the global variable |g:vimperShowClassBrowser| activating the 
+ClassBrowser for the rest of the session.
+
+Note: To view Class/Structure outline ensure that you run the |ctags| first using
+the |:VmkProjTags| command. Only if the tags file is available will the browser show
+anything.
+
+Navigation:~
+
+Use the following keys while in the ClassBrowser window to open the selected member.
+
+'o' - Navigate to the member definition (in case of functions/methods goto the
+      prototype definition)
+'D' - Navigate to the method/function (only relevant for class methods)
+
+
+
+
+3. VTreeExplorer                           *VimpTreeExplorer* *VimpSTreeExplorer*
+
+
+
+Description:
+
+
+
+This plugin was originally created by T. Scott Urban. The plugin creates 
+
+a tree based file explorer in vim.  VTreeExplorer is used as the base in 
+
+the navigation panel providing a view to explore files and directories.  
+
+Features have been added to the base explorer to provide functionality 
+
+such as project definition, build, etc.
+
+
+
+Note: For a detailed description of the core VTreeExplorer functionality 
+
+refer to the VTreeExplorer help document shipped with this plguin. 
+
+(Some of the key mappings have been changed from the original VTreeExplorer 
+
+setting. Please refer below for an updated version of the key mappings.)
+
+
+
+Key Maps: ~
+
+
+
+'<enter>'
+
+'o'
+
+
+
+If the cursor is on a line with a file, open that file in another window.  The
+
+last window visited is where the file will be opened, unless the previous
+
+window contains an unmodified buffer or there is only one window, in which
+
+case a new window will be opened for the file.
+
+
+
+If the cursor is on a line with a directory, load the directory if it isn't
+
+loaded, or toggle the fold for that directory, if the directory is loaded.
+
+
+
+'O'
+
+
+
+Same as 'o' but use use the explorer window when opening the
+
+file (closing the explorer).
+
+
+
+'t'
+
+
+
+Same as 'o' but use new tab instead window when opening the file.
+
+
+
+'X'
+
+
+
+Recursively expand the directory under the cursor.
+
+
+
+'E'
+
+
+
+Open the standard vim |file-explorer| under the cursor.
+
+
+
+'C'
+
+
+
+Change the directory under the cursor (or the parent directory, in case
+
+the cursor is on a file) to the root directory.
+
+
+
+'H'
+
+
+
+Change the root directory to your home directory, defined by the
+
+environment variable $HOME.
+
+
+
+'u'
+
+
+
+Change the root directory up one level, to the parent directory of the
+
+current root directory.
+
+
+
+'p'
+
+
+
+Move the cursor to the parent directory of the directory under the cursor.
+
+Hitting 'p' multiple times will quickly take you to the top of the tree.
+
+
+
+'r'
+
+
+
+Refresh the current directory.  This command might unload
+
+subdirectories of the cursordir, depending on current expansion.
+
+
+
+'R'
+
+
+
+Refresh the root directory.This command might unload subdirectories of
+
+the cursordir, depending on current expansion.
+
+
+
+'S'
+
+
+
+Start a shell in the current directory.
+
+
+
+'D'
+
+
+
+Switch between the three directory sorting modes, described at
+
+|treeExplDirSort|.  Initial value can be set with global variable
+
+|treeExplDirSort|.
+
+
+
+'.'						
+
+
+
+Toggle showing hidden files.  Initial value can be set with global variable
+
+|treeExplHidden|. Hidden files are those starting with a dot or those defined
+
+by the regular expression in the variable |treeExplHidePattern|.
+
+
+
+'?'						
+
+Toggle long help display at top of window.
+
+
+
+'-'                                             
+
+Delete the file or directory under the cursor. User will be prompted to confirm the
+
+delete. In case of a directory the delete is recursive.
+
+
+
+'A'                                             
+
+Create a new project. Details of creating projects are explained in the Projects
+
+section above.
+
+
+
+'a'                         
+
+Add a directory to the current project. If directory doesn't exist it will be created.
+
+
+
+'m'
+
+Build the current project. See the build section of the current project type for
+
+further details.
+
+
+4. Search                                                        *VSearch*
+
+Search provides the ability to execute a regular expression search on all the
+supported filetypes within a project. e.g. in C++ projects the search is executed
+only on the c/c++/h files. It also opens up a window containing the search results
+and provides the ability to navigate to the results.
+
+To search use the command |:VSearch| which will then ask for the regular expression
+to search for and then execute the search and open the resutls window. 
+Note: VSearch requires |perl| to be installed within cygwin.
+
+Navigating the results window:~
+
+
+Command  |   Key   |    Description                                       ~
+
+-------------------------------------------------------------------------
+
+         |<Enter>  |Open the error/warning under the cursor. 
+
+:VSNext  |  "n"    |Next search result
+
+:VSPrev  |  "p"    |Previous search result
+
+:VSQuit  |  "q"    |Close the results window.
+
+:VSReop  |         |Reopen the last search result window.
+
+
+
