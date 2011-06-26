@@ -499,10 +499,6 @@ function! vimper#project#cpp#functions#CreateVimStartup(proj_root)
 	call writefile(olines, vfile)
 endfunction " CreateVimStartup()
 
-function! vimper#project#cpp#functions#SourceChanged(fsrc, root)
-
-endfunction " SourceChanged()
-
 function! vimper#project#cpp#functions#IsTagFileValid(fsrc, root)
 	let result = 0
 	let gentag = 1
@@ -547,29 +543,4 @@ function! vimper#project#cpp#functions#GetTagFileBySource(fsrc, root)
 	return dbfilename
 endfunc " GetTagFileBySource()
 
-function! vimper#project#cpp#functions#IsSupportedExt(fsrc)
-	vimper#project#common#_EXTNS
-	let l:extlist = []
-	if has_key(vimper#project#common#_EXTNS, g:vimperProjectType)
-		let l:exts =  g:_SUPPORTED_EXTS[g:vimperProjectType]
-		let l:extlist = split(l:exts, "|")
-	endif
-	if empty(l:extlist)
-		return
-	endif
-	let l:ext = expand("<a:fsrc>:e")
-	if empty(l:ext)
-		return
-	endif
-	let l:extfound = 0
-	for l:extn in l:extlist
-		if l:ext == l:extn
-			let l:extfound = 1
-			break
-		endif
-	endfor
-	if !l:extfound
-		return 0
-	endif
-	return 1
-endfunction " IsSupportedExt()
+

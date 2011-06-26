@@ -9,7 +9,6 @@ if exists("vloaded_class_explorer")
 	finish
 endif
 let vloaded_class_explorer=1
-let g:_SUPPORTED_EXTS = { 'cpp':'cpp|cxx|c|hpp|HPP|h|H|CPP|CXX|C'}
 
 let s:cpo_save = &cpo
 set cpo&vim
@@ -81,9 +80,6 @@ function! s:SetupEnv() " <<<
 		hi def link argmnts Special
 	endif
 
-	autocmd BufEnter * setlocal cursorline
-	autocmd BufLeave * setlocal nocursorline
-	
 	" for line continuation
 	let cpo_save1 = &cpo
 	set cpo&vim
@@ -557,7 +553,7 @@ function! vimper#project#classexplorer#LoadBrowser()
 	if !exists("g:vimperProjectRoot") || empty(g:vimperProjectRoot)
 		return
 	endif  
-	
+
 	let l:filename = vimper#project#common#WinConvertPath(expand ("%:p"))
 	if vimper#Utils#IsLockedBuffer(l:filename)
 		return
@@ -566,28 +562,11 @@ function! vimper#project#classexplorer#LoadBrowser()
 	let l:bufname = vimper#Utils#GetTabbedBufferName('ClassExplorer')
 	call  vimper#Utils#ClearBuffer(l:bufname)
 
-	let l:extlist = []
-	if has_key(g:_SUPPORTED_EXTS, g:vimperProjectType)
-		let l:exts =  g:_SUPPORTED_EXTS[g:vimperProjectType]
-		let l:extlist = split(l:exts, "|")
-	endif
-	if empty(l:extlist)
+	let extvalid = vimper#project#common#IsSupportedExt(expand("%"))
+	if extvalid == 0
 		return
 	endif
-	let l:ext = expand("%:e")
-	if empty(l:ext)
-		return
-	endif
-	let l:extfound = 0
-	for l:extn in l:extlist
-		if l:ext == l:extn
-			let l:extfound = 1
-			break
-		endif
-	endfor
-	if !l:extfound
-		return
-	endif
+
 	let l:retval = s:OpenBrowser()
 
 	if l:retval == 0
@@ -609,7 +588,7 @@ function! s:OpenBrowser()
 	if !exists("g:vimperProjectRoot") || empty(g:vimperProjectRoot)
 		return
 	endif  
-	
+
 	let l:filename = vimper#project#common#WinConvertPath(expand ("%:p"))
 	let wSize = 40
 	if exists("g:vimperExplorerWidth") && g:vimperExplorerWidth

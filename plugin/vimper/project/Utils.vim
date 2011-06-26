@@ -265,3 +265,21 @@ function! vimper#project#Utils#GetFileName(path)
         endif
         return l:mt[0]
 endfunction " GetFileName()
+
+function! vimper#project#Utils#GetExtension(path)
+	let fname = vimper#project#Utils#GetFileName(a:path)
+	if empty(fname)
+		return ""
+	endif
+	let expts = split(fname, "\\.")
+	if empty(expts)
+		return ""
+	endif
+	let pindx = len(expts) - 1
+	if pindx < 0
+		return ""
+	endif
+	let ext = expts[pindx]
+	
+	return ext
+endfunction " GetExtension()

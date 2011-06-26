@@ -19,47 +19,47 @@ let vimper#cpp#utils#szEscapedCharacters = ' %#'
 " Resolve the path of the file
 " TODO: absolute file path
 function! vimper#cpp#utils#ResolveFilePath(szFile)
-    let result = ''
-    let listPath = split(globpath(&path, a:szFile), "\n")
-    if len(listPath)
-        let result = listPath[0]
-    endif
-    return simplify(result)
+	let result = ''
+	let listPath = split(globpath(&path, a:szFile), "\n")
+	if len(listPath)
+		let result = listPath[0]
+	endif
+	return simplify(result)
 endfunc
 
 " Get code without comments and with empty strings
 " szSingleLine must not have carriage return
 function! vimper#cpp#utils#GetCodeFromLine(szSingleLine)
-    " We set all strings to empty strings, it's safer for 
-    " the next of the process
-    let szResult = substitute(a:szSingleLine, '".*"', '""', 'g')
+	" We set all strings to empty strings, it's safer for 
+	" the next of the process
+	let szResult = substitute(a:szSingleLine, '".*"', '""', 'g')
 
-    " Removing c++ comments, we can use the pattern ".*" because
-    " we are modifying a line
-    let szResult = substitute(szResult, '\/\/.*', '', 'g')
+	" Removing c++ comments, we can use the pattern ".*" because
+	" we are modifying a line
+	let szResult = substitute(szResult, '\/\/.*', '', 'g')
 
-    " Now we have the entire code in one line and we can remove C comments
-    return s:RemoveCComments(szResult)
+	" Now we have the entire code in one line and we can remove C comments
+	return s:RemoveCComments(szResult)
 endfunc
 
 " Remove C comments on a line
 function! s:RemoveCComments(szLine)
-    let result = a:szLine
+	let result = a:szLine
 
-    " We have to match the first '/*' and first '*/'
-    let startCmt = match(result, '\/\*')
-    let endCmt = match(result, '\*\/')
-    while startCmt!=-1 && endCmt!=-1 && startCmt<endCmt
-        if startCmt>0
-            let result = result[ : startCmt-1 ] . result[ endCmt+2 : ]
-        else
-            " Case where '/*' is at the start of the line
-            let result = result[ endCmt+2 : ]
-        endif
-        let startCmt = match(result, '\/\*')
-        let endCmt = match(result, '\*\/')
-    endwhile
-    return result
+	" We have to match the first '/*' and first '*/'
+	let startCmt = match(result, '\/\*')
+	let endCmt = match(result, '\*\/')
+	while startCmt!=-1 && endCmt!=-1 && startCmt<endCmt
+		if startCmt>0
+			let result = result[ : startCmt-1 ] . result[ endCmt+2 : ]
+		else
+			" Case where '/*' is at the start of the line
+			let result = result[ endCmt+2 : ]
+		endif
+		let startCmt = match(result, '\/\*')
+		let endCmt = match(result, '\*\/')
+	endwhile
+	return result
 endfunc
 
 " Get a c++ code from current buffer from [lineStart, colStart] to 
@@ -67,48 +67,48 @@ endfunc
 " and with empty strings if any
 " @return a string
 function! vimper#cpp#utils#GetCode(posStart, posEnd)
-    let posStart = a:posStart
-    let posEnd = a:posEnd
-    if a:posStart[0]>a:posEnd[0]
-        let posStart = a:posEnd
-        let posEnd = a:posStart
-    elseif a:posStart[0]==a:posEnd[0] && a:posStart[1]>a:posEnd[1]
-        let posStart = a:posEnd
-        let posEnd = a:posStart
-    endif
+	let posStart = a:posStart
+	let posEnd = a:posEnd
+	if a:posStart[0]>a:posEnd[0]
+		let posStart = a:posEnd
+		let posEnd = a:posStart
+	elseif a:posStart[0]==a:posEnd[0] && a:posStart[1]>a:posEnd[1]
+		let posStart = a:posEnd
+		let posEnd = a:posStart
+	endif
 
-    " Getting the lines
-    let lines = getline(posStart[0], posEnd[0])
-    let lenLines = len(lines)
+	" Getting the lines
+	let lines = getline(posStart[0], posEnd[0])
+	let lenLines = len(lines)
 
-    " Formatting the result
-    let result = ''
-    if lenLines==1
-        let sStart = posStart[1]-1
-        let sEnd = posEnd[1]-1
-        let line = lines[0]
-        let lenLastLine = strlen(line)
-        let sEnd = (sEnd>lenLastLine)?lenLastLine : sEnd
-        if sStart >= 0
-            let result = vimper#cpp#utils#GetCodeFromLine(line[ sStart : sEnd ])
-        endif
-    elseif lenLines>1
-        let sStart = posStart[1]-1
-        let sEnd = posEnd[1]-1
-        let lenLastLine = strlen(lines[-1])
-        let sEnd = (sEnd>lenLastLine)?lenLastLine : sEnd
-        if sStart >= 0
-            let lines[0] = lines[0][ sStart : ]
-            let lines[-1] = lines[-1][ : sEnd ]
-            for aLine in lines
-                let result = result . vimper#cpp#utils#GetCodeFromLine(aLine)." "
-            endfor
-            let result = result[:-2]
-        endif
-    endif
+	" Formatting the result
+	let result = ''
+	if lenLines==1
+		let sStart = posStart[1]-1
+		let sEnd = posEnd[1]-1
+		let line = lines[0]
+		let lenLastLine = strlen(line)
+		let sEnd = (sEnd>lenLastLine)?lenLastLine : sEnd
+		if sStart >= 0
+			let result = vimper#cpp#utils#GetCodeFromLine(line[ sStart : sEnd ])
+		endif
+	elseif lenLines>1
+		let sStart = posStart[1]-1
+		let sEnd = posEnd[1]-1
+		let lenLastLine = strlen(lines[-1])
+		let sEnd = (sEnd>lenLastLine)?lenLastLine : sEnd
+		if sStart >= 0
+			let lines[0] = lines[0][ sStart : ]
+			let lines[-1] = lines[-1][ : sEnd ]
+			for aLine in lines
+				let result = result . vimper#cpp#utils#GetCodeFromLine(aLine)." "
+			endfor
+			let result = result[:-2]
+		endif
+	endif
 
-    " Now we have the entire code in one line and we can remove C comments
-    return s:RemoveCComments(result)
+	" Now we have the entire code in one line and we can remove C comments
+	return s:RemoveCComments(result)
 endfunc
 
 

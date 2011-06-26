@@ -535,11 +535,11 @@ function! s:LoadDataTypeTags(types, typename, tagline, type)
 		endif
 	elseif l:data[3] == "p"
 		let l:signt = ""
-		if l:data[6] =~ "^signature:"
+		if len(l:data) > 6 && l:data[6] =~ "^signature:"
 			let l:signt = substitute(l:data[6], "^signature:","","")
 		endif
 		if empty(l:signt)
-			if l:data[7] =~ "^signature:"
+			if len(l:data) > 7 && l:data[7] =~ "^signature:"
 				let l:signt = substitute(l:data[7], "^signature:","","")
 			endif
 		endif
@@ -548,11 +548,11 @@ function! s:LoadDataTypeTags(types, typename, tagline, type)
 		endif
 
 		let l:access = ""
-		if l:data[5] =~ "^access:"
+		if len(l:data) > 5 && l:data[5] =~ "^access:"
 			let l:access = substitute(l:data[5], "^access:","","")
 		endif
 		if empty(l:access)
-			if l:data[6] =~ "^access:"
+			if len(l:data) > 6 && l:data[6] =~ "^access:"
 				let l:access = substitute(l:data[6], "^access:","","")
 			endif
 		endif
@@ -574,6 +574,10 @@ function! s:LoadDataTypeTags(types, typename, tagline, type)
 			let l:typedict["funcp"] = l:funcs
 		endif
 	elseif l:data[3] == "m"
+		if len(l:data) < 6
+			return -1
+		endif
+
 		let l:access = substitute(l:data[5], "^access:", "", "")
 		let l:mdict = {}
 		let l:mdict["name"] = l:name

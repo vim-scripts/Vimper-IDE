@@ -8,29 +8,29 @@
 "" create commands
 command! -n=? Vimper :call vimper#project#common#LoadProjectList()
 
-let vimper#project#common#_EXTNS = { "cpp": "cpp|cxx|c|hpp|HPP|h|H|CPP|CXX|C", "java": "java", "c": "c", "vim": "vim" }
+let g:_PROJECT_EXTNS_ = { "cpp": "cpp|cxx|c|hpp|HPP|h|H|CPP|CXX|C", "java": "java", "c": "c", "vim": "vim" }
 let vimper#project#common#IsBuildErrorOn = 0
 command! -n=? VSearch :call vimper#project#common#ExecSearch()
 
 function!  vimper#project#common#ExecSearch()
-  if !exists("g:vimperProjectRoot") || empty(g:vimperProjectRoot)
-    echo "No project loaded..."
-    return
-  endif
-  if !exists("g:vimperProjectType") || empty(g:vimperProjectType)
-    echo "Project type not defined..."
-    return
-  endif 
-  
-  let l:proj_root = g:vimperProjectRoot
-  let l:proj_type = g:vimperProjectType
+	if !exists("g:vimperProjectRoot") || empty(g:vimperProjectRoot)
+		echo "No project loaded..."
+		return
+	endif
+	if !exists("g:vimperProjectType") || empty(g:vimperProjectType)
+		echo "Project type not defined..."
+		return
+	endif 
 
-  let l:exprn = input ( 'Search : ' )
-  if empty(l:exprn)
-    return
-  endif
+	let l:proj_root = g:vimperProjectRoot
+	let l:proj_type = g:vimperProjectType
 
-  call vimper#project#common#Search(l:exprn, l:proj_type, l:proj_root)
+	let l:exprn = input ( 'Search : ' )
+	if empty(l:exprn)
+		return
+	endif
+
+	call vimper#project#common#Search(l:exprn, l:proj_type, l:proj_root)
 
 endfunction " ExecSearch()
 
@@ -38,39 +38,39 @@ endfunction " ExecSearch()
 "  Args :
 "       exprn           --> Expression to search for
 function! vimper#project#common#Search(exprn, proj_type, proj_root)
-  let l:filename = vimper#Utils#GetTabbedBufferName('search')
-  let l:file = vimper#project#common#ConvertPath(expand('$VIMPER_HOME') . '/scripts')
-  let l:efile = vimper#project#common#ConvertPath(expand('$TEMP') . "/" . l:filename) . '.rslt'
+	let l:filename = vimper#Utils#GetTabbedBufferName('search')
+	let l:file = vimper#project#common#ConvertPath(expand('$VIMPER_HOME') . '/scripts')
+	let l:efile = vimper#project#common#ConvertPath(expand('$TEMP') . "/" . l:filename) . '.rslt'
 
-  let l:findcmd = l:file . '/search.pl --dir ' . a:proj_root . ' --type ' . a:proj_type . ' --pattern ' . a:exprn . ' --output ' . l:efile
-  
-  "execute '!' . l:findcmd
-  call system(l:findcmd)
+	let l:findcmd = l:file . '/search.pl --dir ' . a:proj_root . ' --type ' . a:proj_type . ' --pattern ' . a:exprn . ' --output ' . l:efile
 
-  if has('win32')
-    let l:efile =  vimper#project#common#WinConvertPath(l:efile)
-  endif 
-  if filereadable(l:efile)
-    call vimper#project#search_buffer#Results(l:efile, a:exprn)
-  endif
+	"execute '!' . l:findcmd
+	call system(l:findcmd)
+
+	if has('win32')
+		let l:efile =  vimper#project#common#WinConvertPath(l:efile)
+	endif 
+	if filereadable(l:efile)
+		call vimper#project#search_buffer#Results(l:efile, a:exprn)
+	endif
 endfunction " Search()
 "" NextBuildError() -   Goto the next Build Error
 "  Args :
 "       direction       --> +N - Next(N), -N - Prev(N) 
 function! vimper#project#common#NextBuildError(direction)
-  if !vimper#project#common#IsBuildErrorOn 
-    return
-  endif
+	if !vimper#project#common#IsBuildErrorOn 
+		return
+	endif
 
-  if !exists("g:vimperProjectType") || empty(g:vimperProjectType)
-    return
-  endif 
+	if !exists("g:vimperProjectType") || empty(g:vimperProjectType)
+		return
+	endif 
 
-  if g:vimperProjectType == "cpp"
-    vimper#project#cpp#functions#NextBuildError(a:direction)
-  else
-    return
-  endif
+	if g:vimperProjectType == "cpp"
+		vimper#project#cpp#functions#NextBuildError(a:direction)
+	else
+		return
+	endif
 endfunction " NextBuildError()
 
 "" AddToProjectLsit() - Add the current project to the project list file
@@ -80,56 +80,56 @@ endfunction " NextBuildError()
 "       proj_type       --> Type of Project
 "  Return :             --> bool,sucess = 1, failure = 0
 function! s:AddToProjectList(proj_name, proj_root, proj_type)
-    let l:hdir = vimper#project#common#WinConvertPath(expand("~/"))
-    if !vimper#project#Utils#DirectoryExists(l:hdir, ".vim")
-        call mkdir(l:hdir . "/.vim", "")
-    endif
+	let l:hdir = vimper#project#common#WinConvertPath(expand("~/"))
+	if !vimper#project#Utils#DirectoryExists(l:hdir, ".vim")
+		call mkdir(l:hdir . "/.vim", "")
+	endif
 
-    let l:olines = []
-    let l:pfile = l:hdir . "/.vim/projects.vmp"
-    let l:remove = []
+	let l:olines = []
+	let l:pfile = l:hdir . "/.vim/projects.vmp"
+	let l:remove = []
 
-    if filereadable(l:pfile)
-      let l:olines = readfile(l:pfile)
-      if !empty(l:olines)
-        let l:index = 0
-        for l:line in l:olines
-          if l:line =~ "^#"
-            let l:index += 1
-            continue
-          endif
-          let l:data = split(l:line, ";")
-          if empty(l:data)
-            let l:index += 1
-            continue
-          endif
-          if match(a:proj_name, l:data[0]) == 0 && match(a:proj_root, l:data[1]) == 0
-            echo "Project definition already exists..."
-            call add(l:remove, l:index)
-          endif
-          let l:index += 1
-        endfor
-        if !empty(l:remove)
-          for l:rindex in l:remove
-            call remove(l:olines, l:rindex)
-          endfor
-        endif
-      endif
-    endif
-    
-    if empty(l:olines)
-      call add(l:olines, "######################vimper Project Definition file#############")
-      call add(l:olines, "# File contains the list of projects defined by the current user.")
-      call add(l:olines, "# This is an autogenerated file. Please do not edit.")
-      call add(l:olines, "# Created On : " . strftime("%c"))
-      call add(l:olines, "#################################################################")
-    endif
+	if filereadable(l:pfile)
+		let l:olines = readfile(l:pfile)
+		if !empty(l:olines)
+			let l:index = 0
+			for l:line in l:olines
+				if l:line =~ "^#"
+					let l:index += 1
+					continue
+				endif
+				let l:data = split(l:line, ";")
+				if empty(l:data)
+					let l:index += 1
+					continue
+				endif
+				if match(a:proj_name, l:data[0]) == 0 && match(a:proj_root, l:data[1]) == 0
+					echo "Project definition already exists..."
+					call add(l:remove, l:index)
+				endif
+				let l:index += 1
+			endfor
+			if !empty(l:remove)
+				for l:rindex in l:remove
+					call remove(l:olines, l:rindex)
+				endfor
+			endif
+		endif
+	endif
 
-    call add(l:olines, a:proj_name . ';' . a:proj_root . ';' . a:proj_type . ';' . strftime("%y-%m-%d %H:%M"))
+	if empty(l:olines)
+		call add(l:olines, "######################vimper Project Definition file#############")
+		call add(l:olines, "# File contains the list of projects defined by the current user.")
+		call add(l:olines, "# This is an autogenerated file. Please do not edit.")
+		call add(l:olines, "# Created On : " . strftime("%c"))
+		call add(l:olines, "#################################################################")
+	endif
 
-    call writefile(l:olines, l:pfile)
+	call add(l:olines, a:proj_name . ';' . a:proj_root . ';' . a:proj_type . ';' . strftime("%y-%m-%d %H:%M"))
 
-    return 1
+	call writefile(l:olines, l:pfile)
+
+	return 1
 endfunction " AddToProjectList()
 
 "" Build() -            Build the current C/C++ project
@@ -138,66 +138,66 @@ endfunction " AddToProjectList()
 "  Return :		--> bool, sucess = 1, failure = 0
 function! vimper#project#common#Build()
 
-  let vimper#project#common#IsBuildErrorOn = 0
+	let vimper#project#common#IsBuildErrorOn = 0
 
-  if !exists("g:vimperProjectRoot") || empty(g:vimperProjectRoot)
-    return 0
-  endif
+	if !exists("g:vimperProjectRoot") || empty(g:vimperProjectRoot)
+		return 0
+	endif
 
-  if !exists("g:vimperProjectType") || empty(g:vimperProjectType)
-    return 0
-  endif
+	if !exists("g:vimperProjectType") || empty(g:vimperProjectType)
+		return 0
+	endif
 
-  if g:vimperProjectType == "cpp"
-    call vimper#project#cpp#functions#Build(g:vimperProjectRoot)
-  elseif g:vimperProjectType == "vim"
-    call vimper#project#vim#functions#Build(g:vimperProjectRoot)
-  else
-    return 0
-  endif
-  
-  return 1
+	if g:vimperProjectType == "cpp"
+		call vimper#project#cpp#functions#Build(g:vimperProjectRoot)
+	elseif g:vimperProjectType == "vim"
+		call vimper#project#vim#functions#Build(g:vimperProjectRoot)
+	else
+		return 0
+	endif
+
+	return 1
 endfunction " Build()
 
 function! s:CreateNewProject()
 
-  let CWD = getcwd()
+	let CWD = getcwd()
 
-  " Get the new Project Name
-  let project_name = input ("Enter Project Name: ")	
-  if empty(project_name)
-    echo "Project Name cannot be empty."
-    return
-  endif
+	" Get the new Project Name
+	let project_name = input ("Enter Project Name: ")	
+	if empty(project_name)
+		echo "Project Name cannot be empty."
+		return
+	endif
 
-  " Get the project root directory
-  let project_root = input ("Enter Project Root [".CWD."] :")
-  if empty(project_root)
-    let project_root = CWD
-  endif
-  let g:vimperProjectRoot = project_root
+	" Get the project root directory
+	let project_root = input ("Enter Project Root [".CWD."] :")
+	if empty(project_root)
+		let project_root = CWD
+	endif
+	let g:vimperProjectRoot = project_root
 
-  " Get the project build directory
-  let project_type = input ("Enter Project Type (cpp|vim|...): ")
-  if empty(project_type)
-    echo "Please enter a valid project type."
-    echo "Valid Project Types:"
-    echo "\t\t\tcpp"
-    echo "\t\t\tvcpp"
-    echo "\t\t\tvim"
-    return
-  endif
-  call vimper#project#common#CreateNewProject(project_name, project_root, project_type)
+	" Get the project build directory
+	let project_type = input ("Enter Project Type (cpp|vim|...): ")
+	if empty(project_type)
+		echo "Please enter a valid project type."
+		echo "Valid Project Types:"
+		echo "\t\t\tcpp"
+		echo "\t\t\tvcpp"
+		echo "\t\t\tvim"
+		return
+	endif
+	call vimper#project#common#CreateNewProject(project_name, project_root, project_type)
 
-  let l:stfile = project_root . "/.vimproj"
-  if has('win32')
-    let l:stfile = vimper#project#common#WinConvertPath(l:stfile)
-  endif
-  if !filereadable(l:stfile)
-    echo "Cannot load project startup file..."
-    return
-  endif
-  execute "source " . l:stfile
+	let l:stfile = project_root . "/.vimproj"
+	if has('win32')
+		let l:stfile = vimper#project#common#WinConvertPath(l:stfile)
+	endif
+	if !filereadable(l:stfile)
+		echo "Cannot load project startup file..."
+		return
+	endif
+	execute "source " . l:stfile
 endfunction "CreateNewProject()
 "" CreateNewProject() - Create a new project and include all sub-directories
 "                       under the project root containing source files into the project.
@@ -207,37 +207,37 @@ endfunction "CreateNewProject()
 "  	proj_type     --> Project Type (cpp java vim etc)
 "  Return :		--> bool, sucess = 1, failure = 0
 function! vimper#project#common#CreateNewProject(proj_name, proj_root, proj_type)
-  let proj_root = getcwd()
+	let proj_root = getcwd()
 
-  if empty(a:proj_name)
-    echo "Project name cannot be NULL."
-    return 0
-  endif
+	if empty(a:proj_name)
+		echo "Project name cannot be NULL."
+		return 0
+	endif
 
-  if !empty(a:proj_root)
-    let proj_root = a:proj_root
-  endif
+	if !empty(a:proj_root)
+		let proj_root = a:proj_root
+	endif
 
-  if !empty(a:proj_type)
-    let proj_type = a:proj_type
-  endif
+	if !empty(a:proj_type)
+		let proj_type = a:proj_type
+	endif
 
-  try 
-    execute "lcd " . proj_root 
-    if proj_type == "cpp"
-      call vimper#project#cpp#functions#CreateNewProject(a:proj_name, proj_root)
-    elseif proj_type == "vim"
-      call vimper#project#vim#functions#CreateNewProject(a:proj_name, proj_root)
-    else
-      throw "Unknown project type [" . proj_type . "]."
-    endif
-    call mkdir(proj_root . "/.tags")
-    call s:AddToProjectList(a:proj_name, proj_root, proj_type)
-  catch /.*/
-    echo " CreateNewProject() : ERROR : " . v:exception
-    return 0
-  endtry
-  return 1
+	try 
+		execute "lcd " . proj_root 
+		if proj_type == "cpp"
+			call vimper#project#cpp#functions#CreateNewProject(a:proj_name, proj_root)
+		elseif proj_type == "vim"
+			call vimper#project#vim#functions#CreateNewProject(a:proj_name, proj_root)
+		else
+			throw "Unknown project type [" . proj_type . "]."
+		endif
+		call mkdir(proj_root . "/.tags")
+		call s:AddToProjectList(a:proj_name, proj_root, proj_type)
+	catch /.*/
+		echo " CreateNewProject() : ERROR : " . v:exception
+		return 0
+	endtry
+	return 1
 endfunction " CreateNewProject()
 
 "" CreateSubdir() - 	Create the project subdirectory and the subdir.mk
@@ -250,90 +250,90 @@ endfunction " CreateNewProject()
 "  			when importing project)
 "  Return :		--> bool, sucess = 1, failure = 0
 function! vimper#project#common#CreateSubdir(proj_root, dirname, check_exists) 
-  let CWD = getcwd()
-  try
-    let p_type = s:GetProjectType(a:proj_root)
-    if p_type == ""
-      throw "Cannot find project type."
-    endif
-   
-    let reslt = glob(a:dirname)
-    if !empty(reslt)
-      echo "File/Directory by name " . a:dirname . " already exists"
-    else
-      call mkdir(a:dirname)
-    endif
-    
-    if p_type == "cpp"
-      call vimper#project#cpp#functions#CreateSubdir(a:proj_root, a:dirname, a:check_exists)
-    elseif p_type == "vim"
-      call vimper#project#vim#functions#CreateSubdir(a:proj_root, a:dirname, a:check_exists)
-    else
-      throw "Unknown project type [".p_type."]"
-    endif
-  catch /.*/
-    throw "Error : " . v:exception
-  finally
-    execute "lcd " . CWD
-  endtry
+	let CWD = getcwd()
+	try
+		let p_type = s:GetProjectType(a:proj_root)
+		if p_type == ""
+			throw "Cannot find project type."
+		endif
 
-  return 1
+		let reslt = glob(a:dirname)
+		if !empty(reslt)
+			echo "File/Directory by name " . a:dirname . " already exists"
+		else
+			call mkdir(a:dirname)
+		endif
+
+		if p_type == "cpp"
+			call vimper#project#cpp#functions#CreateSubdir(a:proj_root, a:dirname, a:check_exists)
+		elseif p_type == "vim"
+			call vimper#project#vim#functions#CreateSubdir(a:proj_root, a:dirname, a:check_exists)
+		else
+			throw "Unknown project type [".p_type."]"
+		endif
+	catch /.*/
+		throw "Error : " . v:exception
+	finally
+		execute "lcd " . CWD
+	endtry
+
+	return 1
 endfunction " CreateSubdir()
 
 function! s:GetProjectType(proj_root)
-  let type = ""
-  if vimper#project#cpp#functions#IsCppType(a:proj_root) == 1
-    let type = "cpp"
-  elseif vimper#project#vim#functions#IsVimType(a:proj_root) == 1
-    let type = "vim"
-  endif
-  return type
+	let type = ""
+	if vimper#project#cpp#functions#IsCppType(a:proj_root) == 1
+		let type = "cpp"
+	elseif vimper#project#vim#functions#IsVimType(a:proj_root) == 1
+		let type = "vim"
+	endif
+	return type
 endfunction " GetProjectType()
 
 "" ConvertPath(path) - Convert path to cygpath if required {{{1
 function! vimper#project#common#ConvertPath(path) 
-  let path = a:path
-  
-  if has('win32')
-    let path = substitute(path, '\\', '\/', 'g')
-    let path = substitute(path, ' ', '\\ ', 'g')
-    if path =~ '^\S\:'
-      let path = substitute(path, '^\(\S\)\:', '/cygdrive/\L\1', '') 
-    endif
-  endif
+	let path = a:path
 
-  return path
+	if has('win32')
+		let path = substitute(path, '\\', '\/', 'g')
+		let path = substitute(path, ' ', '\\ ', 'g')
+		if path =~ '^\S\:'
+			let path = substitute(path, '^\(\S\)\:', '/cygdrive/\L\1', '') 
+		endif
+	endif
+
+	return path
 endfunction " ConvertPath()
 
 
 "" WinConvertPath(path) - Convert path to Windows path if required {{{1
 function! vimper#project#common#WinConvertPath(path) 
-  let path = a:path
-  
-  if has('win32')
-    let path = substitute(path, '\\', '\/', 'g')
-    let path = substitute(path, ' ', '\\ ', 'g')
-    if path =~ '^/cygdrive/'
-      let path = substitute(path, '^\/cygdrive\/\([a-z]\)', '\U\1:', '') 
-    endif
-    "let path = substitute(system('cygpath -u ' . path), '\n', '', 'g')
-  endif
+	let path = a:path
 
-  return path
+	if has('win32')
+		let path = substitute(path, '\\', '\/', 'g')
+		let path = substitute(path, ' ', '\\ ', 'g')
+		if path =~ '^/cygdrive/'
+			let path = substitute(path, '^\/cygdrive\/\([a-z]\)', '\U\1:', '') 
+		endif
+		"let path = substitute(system('cygpath -u ' . path), '\n', '', 'g')
+	endif
+
+	return path
 endfunction " ConvertPath()
 
 "" CheckIsProjectOrPart() - Check if the current forlder is part of a project.
 "  Args :                 --> dir - Directory to validate
 "  Return                 --> 1 - if part of project, 0 - otherwise
 function! vimper#project#common#CheckIsProjectOrPart(dir) " <<<
-  if  vimper#project#cpp#functions#CheckIsProjectOrPart(a:dir) == 1
-    let g:vimperProjectType = "cpp"
-    return 1
-  elseif  vimper#project#vim#functions#CheckIsProjectOrPart(a:dir) == 1
-    let g:vimperProjectType = "vim"
-    return 1
-  endif
-  return 0
+	if  vimper#project#cpp#functions#CheckIsProjectOrPart(a:dir) == 1
+		let g:vimperProjectType = "cpp"
+		return 1
+	elseif  vimper#project#vim#functions#CheckIsProjectOrPart(a:dir) == 1
+		let g:vimperProjectType = "vim"
+		return 1
+	endif
+	return 0
 endfunction " CheckIsProjectDirectory()
 
 
@@ -342,13 +342,13 @@ endfunction " CheckIsProjectDirectory()
 "                         --> dir - Directory to delete
 "  Return                 --> 1 - if part of project, 0 - otherwise
 function! vimper#project#common#RemoveFromProject(root, dir) " <<<
-  let retval = 0
-  if s:GetProjectType(a:root) == "cpp"
-    let retval = vimper#project#cpp#functions#RemoveFromProject(a:root, a:dir)
-  elseif s:GetProjectType(a:root) == "vim"
-    let retval = vimper#project#vim#functions#RemoveFromProject(a:root, a:dir)
-  endif
-  return retval
+	let retval = 0
+	if s:GetProjectType(a:root) == "cpp"
+		let retval = vimper#project#cpp#functions#RemoveFromProject(a:root, a:dir)
+	elseif s:GetProjectType(a:root) == "vim"
+		let retval = vimper#project#vim#functions#RemoveFromProject(a:root, a:dir)
+	endif
+	return retval
 endfunction "RemoveFromProject()
 
 "" CheckSourceExists() -Check if the directory contains sources of type
@@ -359,164 +359,191 @@ endfunction "RemoveFromProject()
 "  	type		--> Type of makefile (cpp, java, etc.)
 "  Return :		--> bool, exits = 1, notfound = 0
 function! vimper#project#common#CheckSourceExists(dirname, type)
-  try
-    execute "lcd " . a:dirname
-    if has_key(vimper#project#common#_EXTNS, a:type)
-      let extns = split(vimper#project#common#_EXTNS[a:type], '|')
-      if empty(extns)
-        throw  'Extensions not found for type ' . a:type . ' .\n'
-      endif
-      for extn in extns
-        let files = glob('*.'.extn)
-        if files != ""
-          return 1
-        endif
-      endfor
-    else
-      throw 'Extensions not found for type ' . a:type . ' .\n'
-    endif
-  catch /.*/
-    throw 'CheckSourceExists()  : ' . v:exception
-  endtry
-  return 0
+	try
+		execute "lcd " . a:dirname
+		if has_key(vimper#project#common#_EXTNS, a:type)
+			let extns = split(vimper#project#common#_EXTNS[a:type], '|')
+			if empty(extns)
+				throw  'Extensions not found for type ' . a:type . ' .\n'
+			endif
+			for extn in extns
+				let files = glob('*.'.extn)
+				if files != ""
+					return 1
+				endif
+			endfor
+		else
+			throw 'Extensions not found for type ' . a:type . ' .\n'
+		endif
+	catch /.*/
+		throw 'CheckSourceExists()  : ' . v:exception
+	endtry
+	return 0
 endfunction " CheckSourceExists()
 
 "" LoadProjectList() -    Load the list of Registered projects.
 function! vimper#project#common#LoadProjectList()
-  "Clear existing windows and buffers.
-  execute "wincmd o"
-  execute "bdelete"
-  let l:hdir = vimper#project#common#WinConvertPath(expand("~/"))
+	"Clear existing windows and buffers.
+	execute "wincmd o"
+	execute "bdelete"
+	let l:hdir = vimper#project#common#WinConvertPath(expand("~/"))
 
-  let l:olines = []
-  let l:pfile = l:hdir . "/.vim/projects.vmp"
+	let l:olines = []
+	let l:pfile = l:hdir . "/.vim/projects.vmp"
 
-  if !filereadable(l:pfile)
-    echo "No projects defined for the current user."
-    return
-  endif
-  
-  let l:olines = readfile(l:pfile)
-  if empty(l:olines)
-    echo "No project definitions found for the current user."
-    return
-  endif
-  
-  " clear buffer
-  setlocal modifiable | silent! normal ggdG
-  setlocal nomodifiable
+	if !filereadable(l:pfile)
+		echo "No projects defined for the current user."
+		return
+	endif
 
+	let l:olines = readfile(l:pfile)
+	if empty(l:olines)
+		echo "No project definitions found for the current user."
+		return
+	endif
 
-  " throwaway buffer options
-  setlocal noswapfile
-  setlocal buftype=nowrite
-  setlocal bufhidden=delete " d
-  setlocal nowrap
-  setlocal foldcolumn=0
-  setlocal nonumber
-
-  if has('spell')
-    setlocal nospell
-  endif
-  iabc <buffer>
-
-  " for line continuation
-  let cpo_save1 = &cpo
-  set cpo&vim
+	" clear buffer
+	setlocal modifiable | silent! normal ggdG
+	setlocal nomodifiable
 
 
-  let l:index = 0
-  let l:dsize = [ 0,0,0,0 ]
-  let l:length = 0
-  for l:line in l:olines
-    if l:line =~ "^#"
-      continue
-    endif
-    let l:data = split(l:line, ";")
-    if empty(l:data)
-      continue
-    endif
-    if strlen(l:data[0]) > l:dsize[0]
-      let l:dsize[0] = strlen(l:data[0])
-    endif
-    if strlen(l:data[1]) > l:dsize[1]
-      let l:dsize[1] = strlen(l:data[1])
-    endif
-    if strlen(l:data[2]) > l:dsize[2]
-      let l:dsize[2] = strlen(l:data[2])
-    endif
-  endfor
-  let l:header = [ "Project Name", "Project Type", "Project Root" ]
-  if strlen(l:header[0]) > l:dsize[0]
-    let l:dsize[0] = strlen(l:header[0])
-  endif
-  if strlen(l:header[1]) > l:dsize[1]
-    let l:dsize[1] = strlen(l:header[1])
-  endif
-  if strlen(l:header[2]) > l:dsize[2]
-    let l:dsize[2] = strlen(l:header[2])
-  endif
+	" throwaway buffer options
+	setlocal noswapfile
+	setlocal buftype=nowrite
+	setlocal bufhidden=delete " d
+	setlocal nowrap
+	setlocal foldcolumn=0
+	setlocal nonumber
 
-  let l:length = l:dsize[0] + l:dsize[1] + l:dsize[2] + 2
-  let l:buflst = []
-  let l:fmt = "\t\t\t\t%-" . l:dsize[0] . "s|" . "%-" . l:dsize[2] . "s|" . "%-" . l:dsize[1] . "s\n"
-  let l:odata = printf(l:fmt, "Project Name", "Project Type", "Project Root")
-  let @f = l:odata
-  setlocal modifiable | silent put f | setlocal nomodifiable
-  let l:odata = "\t\t\t\t" . repeat("-", l:length) 
-  let @f = l:odata
-  setlocal modifiable | silent put f | setlocal nomodifiable
+	if has('spell')
+		setlocal nospell
+	endif
+	iabc <buffer>
 
-  for l:line in l:olines
-    if l:line =~ "^#"
-      continue
-    endif
-    let l:data = split(l:line, ";")
-    if empty(l:data)
-      continue
-    endif
-    let l:odata = printf(l:fmt, l:data[0], l:data[2], l:data[1]) 
-    
-    let @f = l:odata
-    setlocal modifiable | silent put f | setlocal nomodifiable
-  endfor
-  
-  let l:odata = "\t\t\t\t" . repeat("-", l:length) 
-  let @f = l:odata
-  setlocal modifiable | silent put f | setlocal nomodifiable
-  let l:odata = "\t\t\t\t" . "Key Maps:"
-  let @f = l:odata
-  setlocal modifiable | silent put f | setlocal nomodifiable
-  let l:odata = "\t\t\t\t" . "\t\tOpen Project: <Enter>, o"
-  let @f = l:odata
-  setlocal modifiable | silent put f | setlocal nomodifiable
-  let l:odata = "\t\t\t\t" . "\t\tCreate New Project: n"
-  let @f = l:odata
-  setlocal modifiable | silent put f | setlocal nomodifiable
+	" for line continuation
+	let cpo_save1 = &cpo
+	set cpo&vim
 
 
-  nnoremap <buffer> <cr> :call <SID>OpenProject()<cr>
-  nnoremap <buffer> o    :call <SID>OpenProject()<cr>
-  nnoremap <buffer> n    :call <SID>CreateNewProject()<cr>
+	let l:index = 0
+	let l:dsize = [ 0,0,0,0 ]
+	let l:length = 0
+	for l:line in l:olines
+		if l:line =~ "^#"
+			continue
+		endif
+		let l:data = split(l:line, ";")
+		if empty(l:data)
+			continue
+		endif
+		if strlen(l:data[0]) > l:dsize[0]
+			let l:dsize[0] = strlen(l:data[0])
+		endif
+		if strlen(l:data[1]) > l:dsize[1]
+			let l:dsize[1] = strlen(l:data[1])
+		endif
+		if strlen(l:data[2]) > l:dsize[2]
+			let l:dsize[2] = strlen(l:data[2])
+		endif
+	endfor
+	let l:header = [ "Project Name", "Project Type", "Project Root" ]
+	if strlen(l:header[0]) > l:dsize[0]
+		let l:dsize[0] = strlen(l:header[0])
+	endif
+	if strlen(l:header[1]) > l:dsize[1]
+		let l:dsize[1] = strlen(l:header[1])
+	endif
+	if strlen(l:header[2]) > l:dsize[2]
+		let l:dsize[2] = strlen(l:header[2])
+	endif
+
+	let l:length = l:dsize[0] + l:dsize[1] + l:dsize[2] + 2
+	let l:buflst = []
+	let l:fmt = "\t\t\t\t%-" . l:dsize[0] . "s|" . "%-" . l:dsize[2] . "s|" . "%-" . l:dsize[1] . "s\n"
+	let l:odata = printf(l:fmt, "Project Name", "Project Type", "Project Root")
+	let @f = l:odata
+	setlocal modifiable | silent put f | setlocal nomodifiable
+	let l:odata = "\t\t\t\t" . repeat("-", l:length) 
+	let @f = l:odata
+	setlocal modifiable | silent put f | setlocal nomodifiable
+
+	for l:line in l:olines
+		if l:line =~ "^#"
+			continue
+		endif
+		let l:data = split(l:line, ";")
+		if empty(l:data)
+			continue
+		endif
+		let l:odata = printf(l:fmt, l:data[0], l:data[2], l:data[1]) 
+
+		let @f = l:odata
+		setlocal modifiable | silent put f | setlocal nomodifiable
+	endfor
+
+	let l:odata = "\t\t\t\t" . repeat("-", l:length) 
+	let @f = l:odata
+	setlocal modifiable | silent put f | setlocal nomodifiable
+	let l:odata = "\t\t\t\t" . "Key Maps:"
+	let @f = l:odata
+	setlocal modifiable | silent put f | setlocal nomodifiable
+	let l:odata = "\t\t\t\t" . "\t\tOpen Project: <Enter>, o"
+	let @f = l:odata
+	setlocal modifiable | silent put f | setlocal nomodifiable
+	let l:odata = "\t\t\t\t" . "\t\tCreate New Project: n"
+	let @f = l:odata
+	setlocal modifiable | silent put f | setlocal nomodifiable
+
+
+	nnoremap <buffer> <cr> :call <SID>OpenProject()<cr>
+	nnoremap <buffer> o    :call <SID>OpenProject()<cr>
+	nnoremap <buffer> n    :call <SID>CreateNewProject()<cr>
 endfunction " LoadProjectList()
 
 function! s:OpenProject()
-  let l:line = getline(line("."))
-  let l:data = split(l:line, "|")
+	let l:line = getline(line("."))
+	let l:data = split(l:line, "|")
 
-  if empty(l:data)
-    echo "Cannot parse data [" . l:line . "]"
-    return
-  endif
+	if empty(l:data)
+		echo "Cannot parse data [" . l:line . "]"
+		return
+	endif
 
-  let l:dir = substitute(l:data[2],"^\\s\\+\\|\\s\\+$","","g")
-  let l:stfile = l:dir . "/.vimproj"
-  if has('win32')
-    let l:stfile = vimper#project#common#WinConvertPath(l:stfile)
-  endif
-  if !filereadable(l:stfile)
-    echo "Cannot load project startup file..."
-    return
-  endif
-  execute "source " . l:stfile
+	let l:dir = substitute(l:data[2],"^\\s\\+\\|\\s\\+$","","g")
+	let l:stfile = l:dir . "/.vimproj"
+	if has('win32')
+		let l:stfile = vimper#project#common#WinConvertPath(l:stfile)
+	endif
+	if !filereadable(l:stfile)
+		echo "Cannot load project startup file..."
+		return
+	endif
+	execute "source " . l:stfile
 endfunction " OpenProject()
+
+function! vimper#project#common#IsSupportedExt(fsrc)
+	if !exists("g:_PROJECT_EXTNS_")
+		return 0
+	endif
+
+	let l:extlist = []
+	if has_key(g:_PROJECT_EXTNS_, g:vimperProjectType)
+		let l:exts =  g:_PROJECT_EXTNS_[g:vimperProjectType]
+		let l:extlist = split(l:exts, "|")
+	endif
+	if empty(l:extlist)
+		return 0
+	endif
+	let l:ext = vimper#project#Utils#GetExtension(a:fsrc)
+	if empty(l:ext)
+		return 0
+	endif
+	let l:extfound = 0
+	for l:extn in l:extlist
+		if l:ext == l:extn
+			let l:extfound = 1
+			break
+		endif
+	endfor
+	return l:extfound
+endfunction " IsSupportedExt()
