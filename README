@@ -34,5 +34,6 @@ Goto https://code.google.com/p/vimper/ for more details and documentation. If yo
 
 Use :helptags <install dir>/doc to add the vimdoc files and type :help Vimper to view the help documentation. 
 
-Note: Currently this only works for GVim on Windows, need to fix some issue to make it work on (*)nix platform.
+Note: Currently this only tested on (*)nix platform. An earlier version was tested on Windows with cygwin, tough things might have broken since. If anyone tries it out on windows and faces issues please let me know by logging an issue.
+
  

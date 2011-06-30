@@ -175,7 +175,11 @@ function! s:InitWithFile(filename, root) " <<<
 
 endfunction " >>>
 
+let s:BUFFER = ""
+
 function! s:ShowTypes(sort)
+	let s:BUFFER = ""
+
 	" clear buffer
 	setlocal modifiable | silent! normal ggdG
 	setlocal nomodifiable
@@ -185,103 +189,104 @@ function! s:ShowTypes(sort)
 	endif
 	execute "sign define VHeading linehl=Visual"
 
-	for [key, value] in items(s:_TYPESDICT)
-		if key == "class"
-			call s:ShowClasses(value, getline("."), a:sort)
-		elseif key == "enum"
-			call s:ShowEnums(value, getline("."), a:sort)
-		elseif key == "struct"
-			call s:ShowStructs(value, getline("."), a:sort)
-		elseif key == "function"
-			call s:ShowFunctions(value, getline("."), a:sort)
-		endif
-	endfor
+	if has_key(s:_TYPESDICT, "macros")
+
+	endif
+
+	if has_key(s:_TYPESDICT, "functions")
+		call s:ShowFunctions(s:_TYPESDICT["functions"], getline("."), a:sort)
+	endif
+	if has_key(s:_TYPESDICT, "typedefs")
+
+	endif
+	if has_key(s:_TYPESDICT, "enums")
+		call s:ShowEnums(s:_TYPESDICT["enums"], getline("."), a:sort)
+	endif
+	if has_key(s:_TYPESDICT, "structs")
+		call s:ShowStructs(s:_TYPESDICT["structs"], getline("."), a:sort)
+	endif
+	if has_key(s:_TYPESDICT, "unions")
+
+	endif
+	if has_key(s:_TYPESDICT, "classes")
+		call s:ShowClasses(s:_TYPESDICT["classes"], getline("."), a:sort)
+	endif
+
+	let @f = s:BUFFER
+	setlocal modifiable | silent put f | setlocal nomodifiable
 endfunction " ShowTypes()
 
 function! s:ShowFunctions(funcdict, line, sort)
 	if empty(a:funcdict)
 		return
 	endif
-	let @f = "FUNCTIONS "
-	setlocal modifiable | silent put f | setlocal nomodifiable
-	execute "sign place " . line('.') . " line=" . line('.') . " name=VHeading buffer=" . bufnr("")
+	let s:BUFFER .= "FUNCTIONS \n"
 
 	let l:funcdict = {}
-	if has_key(a:funcdict, "funcd")
-		let l:funcdict = a:funcdict["funcd"]
-	elseif has_key(a:funcdict, "funcp")
-		let l:funcdict = a:funcdict["funcp"]
+	if has_key(a:funcdict, "functions")
+		let l:funcdict = a:funcdict["functions"]
+	elseif has_key(a:funcdict, "prototypes")
+		let l:funcdict = a:funcdict["prototypes"]
 	else
 		return
 	endif
 	if a:sort
 		for [key, value] in sort(items(l:funcdict))
-			let @f = "  |- " . value["name"] . value["signature"] . "[[[" . value["cmd"] . "||" . value["filename"] . "]]]"
-			setlocal modifiable | silent put f | setlocal nomodifiable
+			let s:BUFFER .= "  |- " . value["displayname"] . value["signature"] . "[[[" . value["cmd"] . "||" . value["filename"] . "]]]\n"
 		endfor
 	else
 		for [key, value] in items(l:funcdict)
-			let @f = "  |- " . value["name"] . value["signature"] . "[[[" . value["cmd"] . "||" . value["filename"] . "]]]"
-			setlocal modifiable | silent put f | setlocal nomodifiable
+			let s:BUFFER .= "  |- " . value["displayname"] . value["signature"] . "[[[" . value["cmd"] . "||" . value["filename"] . "]]]\n"
 		endfor
 	endif
-	let @f = "  --" " End functions fold
-	setlocal modifiable | silent put f | setlocal nomodifiable
+	let s:BUFFER .= "  --\n" " End functions fold
 endfunction " ShowFunctions()
 
 function! s:ShowEnums(enumdict, line, sort)
 	if empty(a:enumdict)
 		return
 	endif
-	let @f = "ENUMS "
-	setlocal modifiable | silent put f | setlocal nomodifiable
+	let s:BUFFER .= "ENUMS \n"
 
-	execute "sign place " . line('.') . " line=" . line('.') . " name=VHeading buffer=" . bufnr("")
 	for [key, value] in items(a:enumdict)
-		if has_key(value, "def")
-			let l:enumdef = value["def"]
-			if !empty(l:enumdef)
-				let l:ename = "  |-Enum: " . l:enumdef["name"]
-				if has_key(l:enumdef, "namespace")
-					let l:ename = l:ename . " namespace [" . l:enumdef["namespace"] . "]"
-				endif
-				let @f = l:ename . "{{{"
-				setlocal modifiable | silent put f | setlocal nomodifiable
-			else
-				continue
+		let l:enumdef = {}
+		if has_key(value, "definition")
+			let l:enumdef = value["definition"]
+		else
+			let l:enumdef = vimper#project#cpp#class_buffer#GetDefinition(key, value)
+		endif
+		if !empty(l:enumdef)
+			let l:ename = "  |-Enum: " . l:enumdef["displayname"]
+			if has_key(l:enumdef, "namespace")
+				let l:ename = l:ename . " namespace [" . l:enumdef["namespace"] . "]"
 			endif
+			let s:BUFFER .= l:ename . "{{{\n"
 		else
 			continue
 		endif
 		if has_key(value, "members")
 			let l:members = value["members"]
 			if !empty(l:members)
-				let l:heading = "  |  |-" . "Members : {{{"
-				let @f = l:heading
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let l:heading = "  |  |-" . "Members : {{{\n"
+				let s:BUFFER .= l:heading
 
 				if a:sort
 					for [mkey, mvalue] in sort(items(l:members))
-						let @f = "  |  |  |- " . mvalue["name"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .= "  |  |  |- " . mvalue["displayname"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]\n"
 					endfor
 				else
 					for [mkey, mvalue] in items(l:members)
-						let @f = "  |  |  |- " . mvalue["name"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .= "  |  |  |- " . mvalue["displayname"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]\n"
 					endfor
 				endif
-				let @f = "  }}}" " End Members fold
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let s:BUFFER .= " --}}}\n" " End Members fold
 			endif
 		endif
-		if has_key(value, "def")
-			let @f = "  --}}}" " End enums fold
-			setlocal modifiable | silent put f | setlocal nomodifiable
+		if has_key(value, "definition")
+			let s:BUFFER .= "  --}}}\n" " End enums fold
 		endif
 	endfor
-	let @f = "  --" " End enums fold
-	setlocal modifiable | silent put f | setlocal nomodifiable
+	let s:BUFFER .= "  --\n" " End enums fold
 endfunction " ShowEnums()
 
 function! s:ShowStructs(structdict, line, sort) 
@@ -289,23 +294,20 @@ function! s:ShowStructs(structdict, line, sort)
 		return
 	endif
 
-	let @f = "STRUCTS "
-	setlocal modifiable | silent put f | setlocal nomodifiable
-	execute "sign place " . line('.') . " line=" . line('.') . " name=VHeading buffer=" . bufnr("")
+	let s:BUFFER .= "STRUCTS \n"
 
 	for [key, value] in items(a:structdict)
 		if key =~ "__anon"
 			continue
 		endif
-		if has_key(value, "def")
-			let l:structdef = value["def"]
+		if has_key(value, "definition")
+			let l:structdef = value["definition"]
 			if !empty(l:structdef)
-				let l:cname = "  |-" . "Struct: " . l:structdef["name"]
+				let l:cname = "  |-" . "Struct: " . l:structdef["displayname"]
 				if has_key(l:structdef, "namespace")
 					let l:cname = l:cname . " namespace [" . l:structdef["namespace"] . "]"
 				endif
-				let @f = l:cname . "{{{"
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let s:BUFFER .= l:cname . "{{{\n"
 			else
 				continue
 			endif
@@ -315,78 +317,82 @@ function! s:ShowStructs(structdict, line, sort)
 		if has_key(value, "members")
 			let l:members = value["members"]
 			if !empty(l:members)
-				let l:heading = "  |  |-" . "Members : {{{"
-				let @f = l:heading
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let l:heading = "  |  |-" . "Members : {{{\n"
+				let s:BUFFER .= l:heading
 
 				if a:sort
 					for [mkey, mvalue] in sort(items(l:members))
 						let l:access = "!"
-						if mvalue["access"] =~ "^protected$"
-							let l:access = "+"
-						elseif mvalue["access"] =~ "^public$"
-							let l:access = "*"
+						if has_key(mvalue, "access")
+							if mvalue["access"] =~ "^protected$"
+								let l:access = "+"
+							elseif mvalue["access"] =~ "^public$"
+								let l:access = "*"
+							endif
+						else
+							let l:access = "?"
 						endif
-						let @f = "  |  |  |- (" . l:access . ") " . mvalue["name"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .= "  |  |  |- (" . l:access . ") " . mvalue["displayname"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]\n"
 					endfor
 				else
 					for [mkey, mvalue] in items(l:members)
 						let l:access = "!"
-						if mvalue["access"] =~ "^protected$"
-							let l:access = "+"
-						elseif mvalue["access"] =~ "^public$"
-							let l:access = "*"
+						if has_key(mvalue, "access")
+							if mvalue["access"] =~ "^protected$"
+								let l:access = "+"
+							elseif mvalue["access"] =~ "^public$"
+								let l:access = "*"
+							endif
+						else
+							let l:access = "?"
 						endif
-						let @f = "  |  |  |- (" . l:access . ") " . mvalue["name"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .= "  |  |  |- (" . l:access . ") " . mvalue["displayname"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]\n"
 					endfor
 				endif
-				let @f = "}}}" " End Members fold
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let s:BUFFER .= "--}}}\n" " End Members fold
 			endif
 		endif
-		if has_key(value, "funcp")
-			let l:funcp = value["funcp"]
-			if !empty(l:funcp)
-				let l:heading = "  |  |-" . "Methods : {{{"
-				let @f = l:heading
-				setlocal modifiable | silent put f | setlocal nomodifiable
+		if has_key(value, "functions")
+			let l:prototypes = value["functions"]
+			if !empty(l:prototypes)
+				let l:heading = "  |  |-" . "Methods : {{{\n"
+				let s:BUFFER .= l:heading
 
 				if a:sort
-					for [fkey, fvalue] in sort(items(l:funcp))
+					for [fkey, fvalue] in sort(items(l:prototypes))
 						let l:access = "!"
-						if fvalue["access"] =~ "^protected$"
-							let l:access = "+"
-						elseif fvalue["access"] =~ "^public$"
-							let l:access = "*"
+						if has_key(fvalue, "access")
+							if fvalue["access"] =~ "^protected$"
+								let l:access = "+"
+							elseif fvalue["access"] =~ "^public$"
+								let l:access = "*"
+							endif
+						else
+							let l:access = "?"
 						endif
-						let @f =  "  |  |  |- (" . l:access . ") " . fvalue["name"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]"
-
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .=  "  |  |  |- (" . l:access . ") " . fvalue["displayname"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]\n"
 					endfor
 				else
-					for [fkey, fvalue] in items(l:funcp)
+					for [fkey, fvalue] in items(l:prototypes)
 						let l:access = "!"
-						if fvalue["access"] =~ "^protected$"
-							let l:access = "+"
-						elseif fvalue["access"] =~ "^public$"
-							let l:access = "*"
+						if has_key(fvalue, "access")
+							if fvalue["access"] =~ "^protected$"
+								let l:access = "+"
+							elseif fvalue["access"] =~ "^public$"
+								let l:access = "*"
+							endif
+						else
+							let l:access = "?"
 						endif
-						let @f =  "  |  |  |- (" . l:access . ") " . fvalue["name"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]"
-
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .=  "  |  |  |- (" . l:access . ") " . fvalue["displayname"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]\n"
 					endfor
 				endif
-				let @f = "  }}}" " End methods fold
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let s:BUFFER .= "  --}}}\n" " End methods fold
 			endif
 		endif
-		let @f = "  }}}" " End struct fold
-		setlocal modifiable | silent put f | setlocal nomodifiable
+		let s:BUFFER .= "  --}}}\n" " End struct fold
 	endfor
-	let @f = "  --" " End structes fold
-	setlocal modifiable | silent put f | setlocal nomodifiable
+	let s:BUFFER .= "  --\n" " End structes fold
 endfunction " ShowClasses()
 
 function! s:ShowClasses(classdict, line, sort) 
@@ -394,129 +400,129 @@ function! s:ShowClasses(classdict, line, sort)
 		return
 	endif
 
-	let @f = "CLASSES "
-	setlocal modifiable | silent put f | setlocal nomodifiable
-	execute "sign place " . line('.') . " line=" . line('.') . " name=VHeading buffer=" . bufnr("")
+	let s:BUFFER .= "CLASSES \n"
 
 	for [key, value] in items(a:classdict)
-		if has_key(value, "def")
-			let l:classdef = value["def"]
-			if !empty(l:classdef)
-				let l:cname = "  |-" . "Class: " . l:classdef["name"]
-				if has_key(l:classdef, "namespace")
-					let l:cname = l:cname . " namespace [" . l:classdef["namespace"] . "]"
-				endif
-				if has_key(l:classdef, "inherits")
-					let l:cname = l:cname . " inherits [" . l:classdef["inherits"] . "]"
-				endif
-				let @f = l:cname . "{{{"
-				setlocal modifiable | silent put f | setlocal nomodifiable
-			else
-				continue
+		let l:classdef = {}
+		if has_key(value, "definition")
+			let l:classdef = value["definition"]
+		else
+			let l:classdef = vimper#project#cpp#class_buffer#GetDefinition(key, value)
+		endif
+		if !empty(l:classdef)
+			let l:cname = "  |-" . "Class: " . l:classdef["displayname"]
+			if has_key(l:classdef, "namespace")
+				let l:cname = l:cname . " namespace [" . l:classdef["namespace"] . "]"
 			endif
+			if has_key(l:classdef, "inherits")
+				let l:cname = l:cname . " inherits [" . l:classdef["inherits"] . "]"
+			endif
+			let s:BUFFER .= l:cname . "{{{\n"
 		else
 			continue
 		endif
 		if has_key(value, "members")
 			let l:members = value["members"]
 			if !empty(l:members)
-				let l:heading = "  |  |-" . "Members : {{{"
-				let @f = l:heading
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let l:heading = "  |  |-" . "Members : {{{\n"
+				let s:BUFFER .= l:heading
 
 				if a:sort
 					for [mkey, mvalue] in sort(items(l:members))
 						let l:access = "!"
-						if mvalue["access"] =~ "^protected$"
-							let l:access = "+"
-						elseif mvalue["access"] =~ "^public$"
-							let l:access = "*"
+						if has_key(mvalue, "access")
+							if mvalue["access"] =~ "^protected$"
+								let l:access = "+"
+							elseif mvalue["access"] =~ "^public$"
+								let l:access = "*"
+							endif
+						else
+							let l:access = "?"
 						endif
-						let @f = "  |  |  |- (" . l:access . ") " . mvalue["name"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .= "  |  |  |- (" . l:access . ") " . mvalue["displayname"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]\n"
 					endfor
 				else
 					for [mkey, mvalue] in items(l:members)
 						let l:access = "!"
-						if mvalue["access"] =~ "^protected$"
-							let l:access = "+"
-						elseif mvalue["access"] =~ "^public$"
-							let l:access = "*"
+						if has_key(mvalue, "access")
+							if mvalue["access"] =~ "^protected$"
+								let l:access = "+"
+							elseif mvalue["access"] =~ "^public$"
+								let l:access = "*"
+							endif
+						else
+							let l:access = "?"
 						endif
-						let @f = "  |  |  |- (" . l:access . ") " . mvalue["name"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+
+						let s:BUFFER .= "  |  |  |- (" . l:access . ") " . mvalue["displayname"] . "[[[" . mvalue["cmd"] . "||" . mvalue["filename"] . "]]]\n"
 					endfor
 				endif
-				let @f = "  }}}" " End Members fold
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let s:BUFFER .= "  --}}}\n" " End Members fold
 			endif
 		endif
-		let l:heading = "  |  |-" . "Methods : {{{"
-		let @f = l:heading
-		setlocal modifiable | silent put f | setlocal nomodifiable
-		if has_key(value, "funcp")
-			let l:funcp = value["funcp"]
-			if !empty(l:funcp)
-				let l:heading = "  |  |  |-" . "Prototypes : {{{"
-				let @f = l:heading
-				setlocal modifiable | silent put f | setlocal nomodifiable
+		let l:heading = "  |  |-" . "Methods : {{{\n"
+		let s:BUFFER .= l:heading
+		if has_key(value, "prototypes")
+			let l:prototypes = value["prototypes"]
+			if !empty(l:prototypes)
+				let l:heading = "  |  |  |-" . "Prototypes : {{{\n"
+				let s:BUFFER .= l:heading
 				if a:sort
-					for [fkey, fvalue] in sort(items(l:funcp))
+					for [fkey, fvalue] in sort(items(l:prototypes))
 						let l:access = "!"
-						if fvalue["access"] =~ "^protected$"
-							let l:access = "+"
-						elseif fvalue["access"] =~ "^public$"
-							let l:access = "*"
+						if has_key(fvalue, "access")
+							if fvalue["access"] =~ "^protected$"
+								let l:access = "+"
+							elseif fvalue["access"] =~ "^public$"
+								let l:access = "*"
+							endif
+						else
+							let l:access = "?"
 						endif
-						let @f =  "  |  |  |- (" . l:access . ") " . fvalue["name"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+
+						let s:BUFFER .=  "  |  |  |- (" . l:access . ") " . fvalue["displayname"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]\n"
 					endfor
 				else
-					for [fkey, fvalue] in items(l:funcp)
+					for [fkey, fvalue] in items(l:prototypes)
 						let l:access = "!"
-						if fvalue["access"] =~ "^protected$"
-							let l:access = "+"
-						elseif fvalue["access"] =~ "^public$"
-							let l:access = "*"
+						if has_key(fvalue, "access")
+							if fvalue["access"] =~ "^protected$"
+								let l:access = "+"
+							elseif fvalue["access"] =~ "^public$"
+								let l:access = "*"
+							endif
+						else
+							let l:access = "?"
 						endif
-						let @f =  "  |  |  |- (" . l:access . ") " . fvalue["name"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .=  "  |  |  |- (" . l:access . ") " . fvalue["displayname"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]\n"
 					endfor
 				endif
-				let @f = "  }}}" " End Prototypes fold
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let s:BUFFER .= "  --}}}\n" " End Prototypes fold
 			endif
 		endif
-		if has_key(value, "funcd")
-			let l:funcd = value["funcd"]
-			if !empty(l:funcd)
-				let l:heading = "  |  |  |-" . "Definitions : {{{"
-				let @f = l:heading
-				setlocal modifiable | silent put f | setlocal nomodifiable
+		if has_key(value, "functions")
+			let l:functions = value["functions"]
+			if !empty(l:functions)
+				let l:heading = "  |  |  |-" . "Definitions : {{{\n"
+				let s:BUFFER .= l:heading
 				if a:sort
-					for [fkey, fvalue] in sort(items(l:funcd))
+					for [fkey, fvalue] in sort(items(l:functions))
 						let l:access = "?"
-						let @f =  "  |  |  |- (" . l:access . ") " . fvalue["name"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .=  "  |  |  |- (" . l:access . ") " . fvalue["displayname"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] . "]]]\n"
 					endfor
 				else
-					for [fkey, fvalue] in items(l:funcd)
+					for [fkey, fvalue] in items(l:functions)
 						let l:access = "?"
-						let @f =  "  |  |  |- (" . l:access . ") " . fvalue["name"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] .  "]]]"
-						setlocal modifiable | silent put f | setlocal nomodifiable
+						let s:BUFFER .=  "  |  |  |- (" . l:access . ") " . fvalue["displayname"] . fvalue["signature"] . "[[[" . fvalue["cmd"] . "||" . fvalue["filename"] .  "]]]\n"
 					endfor
 				endif
-				let @f = "  }}}" " End Definitions fold
-				setlocal modifiable | silent put f | setlocal nomodifiable
+				let s:BUFFER .= "  --}}}\n" " End Definitions fold
 			endif
 		endif
-		let @f = "  }}}" " End methods fold
-		setlocal modifiable | silent put f | setlocal nomodifiable
-		let @f = "  }}}" " End class fold
-		setlocal modifiable | silent put f | setlocal nomodifiable
+		let s:BUFFER .= "  --}}}\n" " End methods fold
+		let s:BUFFER .= "  --}}}\n" " End class fold
 	endfor
-	let @f = "  --" " End classes fold
-	setlocal modifiable | silent put f | setlocal nomodifiable
+	let s:BUFFER .= "  --\n" " End classes fold
 endfunction " ShowClasses()
 
 "" Determine the number of windows open to this buffer number.
