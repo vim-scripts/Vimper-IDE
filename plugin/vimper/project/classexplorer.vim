@@ -623,7 +623,7 @@ function! s:OpenBrowser()
 	call vimper#Utils#AddLockedBuffer(l:bufname)    
 	call s:InitWithFile(l:filename, g:vimperProjectRoot)
 
-	autocmd BufWinEnter * call vimper#project#classexplorer#LoadBrowser()
+	autocmd BufWinEnter,BufWritePost * call vimper#project#classexplorer#LoadBrowser()
 
 	return 1
 endfunction " s:OpenBrowser()

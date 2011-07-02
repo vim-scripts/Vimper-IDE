@@ -267,7 +267,11 @@ function! vimper#project#Utils#GetFileName(path)
 endfunction " GetFileName()
 
 function! vimper#project#Utils#GetExtension(path)
-	let fname = vimper#project#Utils#GetFileName(a:path)
+	let fname = a:path
+	if fname =~ "/"
+		let fname = vimper#project#Utils#GetFileName(a:path)
+	endif
+
 	if empty(fname)
 		return ""
 	endif

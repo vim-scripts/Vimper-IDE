@@ -71,7 +71,10 @@ function! vimper#project#cpp#class_buffer#GetDefinition(name, record)
 	if !empty(l:taglist) && !empty(l:taglist[0])
 		let l:taglist[0]["displayname"] = s:GetTypeName(a:name)	
 	endif
-	return l:taglist[0]
+	if !empty(l:taglist) && !empty(l:taglist[0])
+		return l:taglist[0]
+	endif
+	return {}
 endfunction " GetDefinition()
 
 function! vimper#project#cpp#class_buffer#LoadFile(filename, root)

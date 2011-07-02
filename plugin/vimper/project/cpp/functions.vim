@@ -511,7 +511,10 @@ function! vimper#project#cpp#functions#IsTagFileValid(fsrc, root)
 		endif
 	endif
 	if gentag == 1
-		let cmd = ':silent !ctags -f ' . dbfilename . ' --c++-kinds=+pl --fields=+iaS --extra=+q --sort=yes ' . a:fsrc
+		"let cmd = ':silent !ctags -f ' . dbfilename . ' --c++-kinds=+pl --fields=+iaS --extra=+q --sort=yes ' . a:fsrc
+		let dir = vimper#project#Utils#GetParentDirectory(a:fsrc)
+		let fname = vimper#project#Utils#GetFileName(a:fsrc)
+		let cmd = ":silent !" . expand('$VIMPER_HOME') . "/scripts/ctags.sh -f " . dir . " " . dbfilename . " " .  a:root . " " . fname
 		execute cmd
 	endif
 	if filereadable(dbfilename)

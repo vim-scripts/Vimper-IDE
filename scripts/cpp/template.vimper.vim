@@ -25,6 +25,7 @@ let s:tagsFolder = vimper#project#common#WinConvertPath(g:vimperProjectRoot . "/
 let s:tagsFile = s:tagsFolder . "/proj.tags"
 
 let s:tagStartDir = vimper#project#common#WinConvertPath(g:vimperProjectRoot)
+let g:vimperTagsOnSave = 1
 
 set tags+=<TAG_DIR>/.tags/current.tag
 set tags+=<TAG_DIR>/.tags/proj.tags
@@ -55,7 +56,7 @@ call vimper#project#session#SessionManager#Load(g:vimperProjectRoot)
 au BufDelete * call vimper#project#session#SessionManager#RemoveFile(g:vimperProjectRoot, expand("<afile>:p"))
 
 function! s:RunCtags()
-	let scpath = expand('$VIMPER_HOME') . '/scripts/ctags.sh '
+	let scpath = expand('$VIMPER_HOME') . '/scripts/ctags.sh -d '
 	let cmd = '!' . scpath . s:tagStartDir . ' ' . s:tagsFile
 	execute cmd
 endfunction! "RunCtags()

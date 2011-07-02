@@ -12,8 +12,6 @@ Current features include:
 * Auto generation of makefiles. 
 * Integration and navigation of make errors/warnings. 
 * Project Window (listing all defined projects) 
-
-Update: 
 * Browser to View/Navigate Class/Structure/Function definitions 
 * Search files within project and navigate to search results. 
 
