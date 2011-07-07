@@ -592,6 +592,9 @@ let s:maxTabWidth = 0
 " Variable used to count debug output lines
 let s:debugIndex = 0 
 
+let s:expandBuffer = 0
+
+let s:bufferMap = {}
 
 " }}}
 " Setup an autocommand group and some autocommands {{{
@@ -1056,16 +1059,18 @@ augroup MiniBufExplorer
     function! <SID>BuildBufferList(delBufNum, updateBufList)
         call <SID>DEBUG('Entering BuildBufferList()',10)
 
-        let l:NBuffers = bufnr('$')     " Get the number of the last buffer.
-        let l:i = 0                     " Set the buffer index to zero.
+        let l:sbuffers = <SID>GetSortedBuffers()
+        let l:NBuffers = len(l:sbuffers)
+        let l:ii = 0                     " Set the buffer index to zero.
 
         let l:fileNames = ''
         let l:maxTabWidth = 0
+        let l:winWidth = winwidth('.')
 
         " Loop through every buffer less than the total number of buffers.
-        while(l:i <= l:NBuffers)
-            let l:i = l:i + 1
-
+        while(l:ii < l:NBuffers)
+            let l:i = l:sbuffers[l:ii]
+            let l:ii = l:ii + 1
             " If we have a delBufNum and it is the current
             " buffer then ignore the current buffer. 
             " Otherwise, continue.
@@ -1097,7 +1102,18 @@ augroup MiniBufExplorer
                             endif
 
                             let l:maxTabWidth = <SID>Max(strlen(l:tab), l:maxTabWidth)
-                            let l:fileNames = l:fileNames.l:tab
+
+                            if g:miniBufExplVSplit == 0
+                                let l:linew = strlen(l:fileNames) + strlen(l:tab)
+                                if l:linew >= l:winWidth && s:expandBuffer == 0
+                                    let l:fileNames = l:fileNames . '[...]'
+                                    break
+                                else
+                                    let l:fileNames = l:fileNames . l:tab
+                                endif
+                            else
+                                let l:fileNames = l:fileNames.l:tab
+                            endif 
 
                             " If horizontal and tab wrap is turned on we need to add spaces
                             if g:miniBufExplVSplit == 0
@@ -1113,6 +1129,10 @@ augroup MiniBufExplorer
                 endif
             endif
         endwhile
+
+        if s:expandBuffer != 0
+            let s:expandBuffer = 0
+        endif
 
         if (g:miniBufExplBufList != l:fileNames)
             if (a:updateBufList)
@@ -1236,6 +1256,7 @@ augroup MiniBufExplorer
 
         endif
 
+        call <SID>UpdateBufferList(a:delBufNum)
         if (a:delBufNum != -1)
             call <SID>DEBUG('AutoUpdate will make sure that buffer '.a:delBufNum.' is not included in the buffer list.', 5)
         endif
@@ -1313,6 +1334,11 @@ augroup MiniBufExplorer
         let @" = ""
         normal ""yi[
         if @" != ""
+            if @" == "..."
+                let l:retv = -999
+                let @" = l:save_reg
+                return l:retv
+            endif
             let l:retv = substitute(@",'\([0-9]*\):.*', '\1', '') + 0
             let @" = l:save_reg
             return l:retv
@@ -1349,7 +1375,20 @@ augroup MiniBufExplorer
         let l:resize = 0
 
         if(l:bufnr != -1)             " If the buffer exists.
+            if l:bufnr == -999      " Expanded [...], show the entire bufffer.
+                let s:expandBuffer = 1
+                setlocal modifiable
 
+                call <SID>ShowBuffers(-1)
+                call <SID>ResizeWindow()
+
+                normal! zz
+
+                " Prevent the buffer from being modified.
+                setlocal nomodifiable
+                set nobuflisted
+                return
+            endif
             let l:saveAutoUpdate = g:miniBufExplorerAutoUpdate
             let g:miniBufExplorerAutoUpdate = 0
             " Switch to the previous window
@@ -1503,6 +1542,93 @@ augroup MiniBufExplorer
 
     endfunction
 
+    let s:openIndex = 0
+    function! <SID>UpdateBufferList(buffnr)
+        if a:buffnr == -1
+            let l:buffnm = bufname('%')
+            if empty(l:buffnm)
+                return
+            endif
+            let l:buffnr = bufnr('%')
+            if(getbufvar(l:buffnr, '&buflisted') == 1)
+                " Only show modifiable buffers (The idea is that we don't 
+                " want to show Explorers)
+                if (getbufvar(l:buffnr, '&modifiable') == 1)
+                    let s:bufferMap[l:buffnr] = s:openIndex
+                    let s:openIndex = s:openIndex + 1
+                endif
+            endif
+        else
+            if has_key(s:bufferMap, a:buffnr)
+                call remove(s:bufferMap, a:buffnr)
+            endif
+        endif
+    endfunction " AddNewBuffer()
+
+    function! <SID>GetSortedBuffers()
+        let l:NBuffers = bufnr('$')     " Get the number of the last buffer.
+        let l:i = 0                     " Set the buffer index to zero.
+
+        let l:buffarr = []
+        while l:i <= l:NBuffers
+            let l:i = l:i + 1
+            if(getbufvar(l:i, '&buflisted') == 1)
+                " Get the name of the buffer.
+                let l:BufName = bufname(l:i)
+                " Check to see if the buffer is a blank or not. If the buffer does have
+                " a name, process it.
+                if(strlen(l:BufName))
+                    if (getbufvar(l:i, '&modifiable') == 1 && BufName != '-MiniBufExplorer-')
+                        if !has_key(s:bufferMap, l:i) 
+                            continue
+                        endif
+                        let l:index = s:bufferMap[l:i] + 0
+                        let l:buffarr = <SID>sortedAdd(l:buffarr, [l:i, l:index])
+                    endif
+                endif
+            endif
+        endwhile
+        let l:retarr = []
+        let l:i = 0
+        let l:lenarr = len(l:buffarr)
+        while l:i < l:lenarr
+            call add(l:retarr, l:buffarr[l:i][0])
+            let l:i = l:i + 1
+        endwhile
+        return l:retarr
+    endfunction " getSortedBuffers()
+
+    function! <SID>sortedAdd(array, elem)
+        let l:lenarr = len(a:array)
+        let l:array = []
+        if l:lenarr > 0
+            let l:elem = a:elem[1] + 0
+            let l:i = 0
+            let l:added = 0
+            while l:i < l:lenarr
+                let l:aelem = a:array[l:i][1] + 0
+                if l:aelem >= l:elem
+                    call add(l:array, a:array[l:i])
+                else
+                    call add(l:array, a:elem)
+                    let l:added = 1
+                    break
+                endif
+                let l:i = l:i + 1
+            endwhile
+            if l:added == 0
+                call add(l:array, a:elem)
+            else
+                while l:i < l:lenarr
+                    call add(l:array, a:array[l:i])
+                    let l:i = l:i + 1
+                endwhile
+            endif
+        else
+            call add(l:array, a:elem)
+        endif
+        return l:array
+    endfunction " sortedAdd()
     " }}}
     " MBEClick - Handle mouse double click {{{
     "
