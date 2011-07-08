@@ -1065,7 +1065,7 @@ augroup MiniBufExplorer
 
         let l:fileNames = ''
         let l:maxTabWidth = 0
-        let l:winWidth = winwidth('.')
+        let l:winWidth = winwidth('.') - 6
 
         " Loop through every buffer less than the total number of buffers.
         while(l:ii < l:NBuffers)

@@ -159,6 +159,25 @@ function! vimper#project#common#Build()
 	return 1
 endfunction " Build()
 
+function! vimper#project#common#CreateType(dir)
+
+	if !exists("g:vimperProjectRoot") || empty(g:vimperProjectRoot)
+		return 0
+	endif
+
+	if !exists("g:vimperProjectType") || empty(g:vimperProjectType)
+		return 0
+	endif
+
+	if g:vimperProjectType == "cpp"
+		call vimper#project#cpp#functions#CreateClass(a:dir)
+	else
+		return 0
+	endif
+
+	return 1
+endfunction " CreateType()
+
 function! s:CreateNewProject()
 
 	let CWD = getcwd()

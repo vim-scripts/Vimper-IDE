@@ -546,4 +546,100 @@ function! vimper#project#cpp#functions#GetTagFileBySource(fsrc, root)
 	return dbfilename
 endfunc " GetTagFileBySource()
 
+function! vimper#project#cpp#functions#CreateClass(dir)
+	let files = []
+	let classname = s:GetProperty("Classname : ")
+	let namespace = input("Namespace (default : none) : ")
+	let inherits = input("Inherits (default : none) : ")
+	let virtuald = input("Virtual Destructor? (y/n) : ")
+
+	let scrdir = expand('$VIMPER_HOME') . '/scripts/cpp/'
+	let templhdr = scrdir . "class.template.h"
+	let templcpp = scrdir . "class.template.cpp"
+
+	if has('win32')
+		let templhdr = vimper#project#common#WinConvertPath(templhdr)
+		let templcpp = vimper#project#common#WinConvertPath(templcpp)
+	endif
+
+	if !filereadable(templhdr)
+		echo "Cannot find header template " . templhdr
+		return files
+	endif
+
+	if !filereadable(templcpp)
+		echo "Cannot find cpp template " . templcpp
+		return files
+	endif
+
+	let houtput = []
+	let coutput = []
+	let lines = readfile(templhdr)
+	if empty(lines)
+		echo "Invalid template file " . templhdr
+		return files
+	endif
+	
+	let classdef = classname
+	if !empty(inherits)
+		let classdef = classdef . " : public " . inherits
+	endif
+	
+	let namespdef = ""
+	let namespend = ""
+	if !empty(namespace)
+		let parts = split(namespace, "::")
+		if !empty(parts)
+			for part in parts
+				let namespdef = namespdef . "namespace " . part . " { "
+				let namespend = namespend . "} "
+			endfor
+		endif
+	endif
+	for line in lines
+		let nline = line
+		let nline = substitute(nline, "__CLASSNAME_H__", "__" . toupper(classname) . "_H__", "")
+		let nline = substitute(nline, "__CLASSDEF__", classdef, "")
+		let nline = substitute(nline, "__CLASSNAME__", classname, "g")
+		let nline = substitute(nline, "__NAMESPACE__", namespdef . " {", "")
+		let nline = substitute(nline, "__NAMESPACE_END__", namespend, "")
+		if !empty(virtuald) && virtuald == "y"
+			let nline = substitute(nline, "__MODIFIER__", "virtual", "")
+		else
+			let nline = substitute(nline, "__MODIFIER__", "", "")
+		endif
+		call add(houtput, nline)
+	endfor
+	let hfile = a:dir . "/" . classname . ".h"
+	let hfile = vimper#project#common#WinConvertPath(hfile)
+	call writefile(houtput, hfile)
+
+	let lines = readfile(templcpp)
+	if empty(lines)
+		echo "Invalid template file " . templcpp
+		return files
+	endif
+	for line in lines
+		let nline = line
+		let nline = substitute(nline, "__HEADER_INC__", classname . ".h", "")
+		let nline = substitute(nline, "__CLASSNAME__", classname, "g")
+		let nline = substitute(nline, "__NAMESPACE__", namespdef, "")
+		let nline = substitute(nline, "__NAMESPACE_END__", namespend, "")
+		call add(coutput, nline)
+	endfor
+	let cfile = a:dir . "/" . classname . ".cpp"
+	let cfile = vimper#project#common#WinConvertPath(cfile)
+	call writefile(coutput, cfile)
+
+	let files = [hfile, cfile]
+	return files
+endfunction " CreateClass()
+
+function! s:GetProperty(title)
+	let value = ""
+	while empty(value)
+		let value = input(a:title)
+	endwhile
+	return value
+endfunction " GetProperty()
 

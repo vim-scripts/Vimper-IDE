@@ -189,6 +189,7 @@ function! s:TreeExplorer(split, start) " <<<
   nnoremap <buffer> a    :call <SID>CreateNewDirectory()<cr>
   nnoremap <buffer> A    :call <SID>CreateNewProject()<cr>
   nnoremap <buffer> f    :call <SID>CreateNewFile()<cr>
+  nnoremap <buffer> c    :call <SID>CreateNewType()<cr>
   nnoremap <buffer> -    :call <SID>Delete()<cr>
   nnoremap <buffer> m    :call <SID>Build()<cr>
   nnoremap <buffer> ?    :call <SID>ToggleHelp()<cr>
@@ -202,6 +203,20 @@ function! s:TreeExplorer(split, start) " <<<
 
   call s:InitWithDir(fname) " load fname dir
 endfunction " >>>
+
+function! s:CreateNewType()
+	let l:dir = s:GetAbsPath2(line("."), 0)
+  " remove file name, if any
+  let l:dir = substitute (l:dir, '[^/]*$', "", "")
+  let l:dir = substitute(l:dir, ' ', '\\ ', 'g')
+
+	let l:cfiles = vimper#project#cpp#functions#CreateClass(l:dir)
+	if !empty(l:cfiles)
+		for l:file in l:cfiles
+			call vimper#Utils#OpenInWindow(l:file)
+		endfor
+	endif
+endfunction " CreateNewType()
 
 "" CreateNewFile() : Add a new file to the current directory
 function! s:CreateNewFile()
