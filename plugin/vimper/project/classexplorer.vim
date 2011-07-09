@@ -190,7 +190,11 @@ function! s:ShowTypes(sort)
 	execute "sign define VHeading linehl=Visual"
 
 	if has_key(s:_TYPESDICT, "macros")
-
+		call s:ShowMacros(s:_TYPESDICT["macros"], getline("."), a:sort)
+	endif
+	
+	if has_key(s:_TYPESDICT, "typedefs")
+		call s:ShowTypedefs(s:_TYPESDICT["typedefs"], getline("."), a:sort)
 	endif
 
 	if has_key(s:_TYPESDICT, "functions")
@@ -216,12 +220,50 @@ function! s:ShowTypes(sort)
 	setlocal modifiable | silent put f | setlocal nomodifiable
 endfunction " ShowTypes()
 
+function! s:ShowTypedefs(funcdict, line, sort)
+	if empty(a:funcdict)
+		return
+	endif
+	let s:BUFFER .= "TYPEDEFS \n"
+
+	let l:funcdict = a:funcdict
+	if a:sort
+		for [key, value] in sort(items(l:funcdict))
+			let s:BUFFER .= "  |- " . value["displayname"] . "[[[" . value["cmd"] . "||" . value["filename"] . "]]]\n"
+		endfor
+	else
+		for [key, value] in items(l:funcdict)
+			let s:BUFFER .= "  |- " . value["displayname"] . "[[[" . value["cmd"] . "||" . value["filename"] . "]]]\n"
+		endfor
+	endif
+	let s:BUFFER .= "  --\n" " End functions fold
+endfunction " ShowTypedefs()
+
+function! s:ShowMacros(funcdict, line, sort)
+	if empty(a:funcdict)
+		return
+	endif
+	let s:BUFFER .= "MACROS \n "
+
+	let l:funcdict = a:funcdict
+	if a:sort
+		for [key, value] in sort(items(l:funcdict))
+			let s:BUFFER .= "  |- " . value["displayname"] . "[[[" . value["cmd"] . "||" . value["filename"] . "]]]\n"
+		endfor
+	else
+		for [key, value] in items(l:funcdict)
+			let s:BUFFER .= "  |- " . value["displayname"] . "[[[" . value["cmd"] . "||" . value["filename"] . "]]]\n"
+		endfor
+	endif
+	let s:BUFFER .= "  --\n\n" " End functions fold
+endfunction " ShowMacros()
+
 function! s:ShowFunctions(funcdict, line, sort)
 	if empty(a:funcdict)
 		return
 	endif
-	let s:BUFFER .= "FUNCTIONS \n"
-
+	let s:BUFFER .= "FUNCTIONS \n "
+ 
 	let l:funcdict = {}
 	if has_key(a:funcdict, "functions")
 		let l:funcdict = a:funcdict["functions"]
@@ -314,6 +356,17 @@ function! s:ShowStructs(structdict, line, sort)
 		else
 			continue
 		endif
+		if has_key(value, "typedefs")
+			let l:typedefs = value["typedefs"]
+			let l:heading = "  |  |-" . "Typedefs : {{{\n"
+			let s:BUFFER .= l:heading
+
+			for [key, tvalue] in items(l:typedefs)
+				let s:BUFFER .= "  |  |  |- " . tvalue["displayname"] . "[[[" . tvalue["cmd"] . "||" . tvalue["filename"] . "]]]\n"
+			endfor
+			let s:BUFFER .= "  --}}}\n" " End Typedefs Fold
+		endif
+
 		if has_key(value, "members")
 			let l:members = value["members"]
 			if !empty(l:members)
@@ -420,6 +473,16 @@ function! s:ShowClasses(classdict, line, sort)
 			let s:BUFFER .= l:cname . "{{{\n"
 		else
 			continue
+		endif
+		if has_key(value, "typedefs")
+			let l:typedefs = value["typedefs"]
+			let l:heading = "  |  |-" . "Typedefs : {{{\n"
+			let s:BUFFER .= l:heading
+
+			for [key, tvalue] in items(l:typedefs)
+				let s:BUFFER .= "  |  |  |- " . tvalue["displayname"] . "[[[" . tvalue["cmd"] . "||" . tvalue["filename"] . "]]]\n"
+			endfor
+			let s:BUFFER .= "  --}}}\n" " End Typedefs Fold
 		endif
 		if has_key(value, "members")
 			let l:members = value["members"]

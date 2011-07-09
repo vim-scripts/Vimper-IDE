@@ -35,7 +35,7 @@ if exists("vloaded_tree_explorer") && !exists("g:treeExplDebug")
   finish
 endif
 let vloaded_tree_explorer=1
-
+let s:ExplorerBufferName = ""
 let s:cpo_save = &cpo
 set cpo&vim
 
@@ -106,6 +106,7 @@ function! s:TreeExplorer(split, start) " <<<
   let fname = (a:start != "") ? a:start : expand ("%:p:h")
   let fname = (fname != "") ? fname : getcwd ()
   let l:bufname = vimper#Utils#GetTabbedBufferName('TreeExplorer')
+	let s:ExplorerBufferName = l:bufname
   " construct command to open window
   if a:split || &modified
     " if starting with split, get split parameters from globals
@@ -216,6 +217,10 @@ function! s:CreateNewType()
 			call vimper#Utils#OpenInWindow(l:file)
 		endfor
 	endif
+	if !empty(s:ExplorerBufferName)
+		call vimper#Utils#GotoWindow(s:ExplorerBufferName)
+		call s:RefreshDir()
+	endif
 endfunction " CreateNewType()
 
 "" CreateNewFile() : Add a new file to the current directory
@@ -231,9 +236,11 @@ function! s:CreateNewFile()
     return
   endif
   call vimper#Utils#OpenInWindow(l:curfile . "/" .l:fname)
-
-  "execute ":wincmd l" 
-  "execute "edit " . l:curfile . "/" .l:fname
+	if !empty(s:ExplorerBufferName)
+		call vimper#Utils#GotoWindow(s:ExplorerBufferName)
+		call s:RefreshDir()
+		wincmd p
+	endif
 endfunction " CreateNewFile()
 
 "" Build() : Execute the build command for the current project
